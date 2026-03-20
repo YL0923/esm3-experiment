@@ -1,0 +1,10 @@
+__pycache__/
+.ipynb_checkpoints/
+*.pyc
+
+gradient_mask_pdbs/
+gradient_mask_results.txt
+
+*.pdb
+
+tf-logs/

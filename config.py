@@ -1,105 +1,156 @@
 # config.py
-# CA2 carbonic anhydrase gradient mask experiment configuration
-#
-# Residue numbering:
-#   Sequence index: numbering used in this experiment, 1-indexed, 1 to 256, continuous without gaps
-#   PDB numbering: original numbering in 1CA2, from 4 to 260, with missing residues (first 3 residues absent)
-#   Mapping: sequence index = order of residues with coordinates in the PDB
-#
-# Layer definition:
-#   Layer 1: catalytic core (7 residues, manually defined, biologically meaningful)
-#   Layer 2: functional shell (8 residues, manually defined, surrounding the active site)
-#   Layer 3: intermediate region (171 residues, within <20Å from catalytic center, excluding Layer 1 and 2)
-#   Layer 4: distal region (70 residues, ≥20Å from catalytic center)
+# Configuration for gradient mask structure experiment
+# Supports multiple proteins in a single run
 
 # ============================================================
-# 1. Model and file paths
+# 1. Model and generation parameters
 # ============================================================
-MODEL_NAME    = "esm3-sm-open-v1"
-DEVICE        = "cuda"
-PDB_PATH      = "1CA2.pdb"
-PDB_CHAIN     = "A"
-OUTPUT_FILE   = "gradient_mask_results.jsonl"
-STRUCTURE_DIR = "gradient_mask_pdbs"
-
-# ============================================================
-# 2. Layer definitions (sequence indices, 1-indexed)
-# ============================================================
-
-# Layer 1: catalytic core (always fixed, sequence identity + coordinates not released)
-# PDB: His64, His94, His96, Glu106, His119, Thr199, Thr200
-LAYER_1 = {61, 91, 93, 103, 116, 195, 196}
-
-# Layer 2: functional shell (always fixed, sequence identity + coordinates not released)
-# PDB: Tyr7, Asn62, Asn67, Val121, Val143, Leu198, Val207, Trp209
-LAYER_2 = {4, 59, 64, 118, 139, 194, 203, 205}
-
-# Layer 3: intermediate region (distance to catalytic center < 20Å, excluding Layer 1 and 2)
-LAYER_3 = {
-    2, 3, 5, 8, 9, 10, 13, 20, 24, 25, 26, 27, 28, 29, 30, 44, 46, 47,
-    48, 51, 52, 53, 54, 55, 56, 57, 58, 60, 62, 63, 65, 66, 67, 68, 69,
-    74, 75, 76, 85, 86, 87, 88, 89, 90, 92, 94, 95, 96, 97, 98, 99, 100,
-    101, 102, 104, 105, 106, 108, 109, 110, 111, 112, 113, 114, 115, 117,
-    119, 120, 121, 127, 128, 130, 131, 136, 137, 138, 140, 141, 142, 143,
-    144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157,
-    158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171,
-    172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185,
-    186, 187, 188, 189, 190, 191, 192, 193, 197, 198, 199, 200, 201, 202,
-    204, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218,
-    219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 235, 236, 237, 238,
-    239, 240, 241, 242, 243, 244, 245
-}
-
-# Layer 4: distal region (distance to catalytic center ≥ 20Å)
-LAYER_4 = {
-    1, 6, 7, 11, 12, 14, 15, 16, 17, 18, 19, 21, 22, 23, 31, 32, 33, 34,
-    35, 36, 37, 38, 39, 40, 41, 42, 43, 45, 49, 50, 70, 71, 72, 73, 77,
-    78, 79, 80, 81, 82, 83, 84, 107, 122, 123, 124, 125, 126, 129, 132,
-    133, 134, 135, 229, 230, 231, 232, 233, 234, 246, 247, 248, 249, 250,
-    251, 252, 253, 254, 255, 256
-}
-
-assert len(LAYER_1) + len(LAYER_2) + len(LAYER_3) + len(LAYER_4) == 256
-
-# Layer 1 + Layer 2: always fixed (both sequence identity and coordinates are preserved)
-FIXED_RESIDUES = LAYER_1 | LAYER_2   # total 15 residues
+MODEL_NAME         = "esm3-sm-open-v1"
+DEVICE             = "cuda"
+N_SAMPLES          = 10
+STRUCT_NUM_STEPS   = 8
+STRUCT_TEMPERATURE = 0.7
+SEQ_NUM_STEPS      = 8
+SEQ_TEMPERATURE    = 0.7
+BASE_SEED          = 42
 
 # ============================================================
-# 3. Experiment condition definitions
-# Each condition defines which layers are masked (both sequence and coordinates released, Scheme A)
-# FIXED_RESIDUES remain unchanged in all conditions
+# 2. Shared experimental conditions (same for all proteins)
 # ============================================================
-
 CONDITIONS = [
     {
-        "name":        "mask_layer4",
-        "label":       "Mask distal only (Layer 4)",
-        "mask_layers": [4],
-        "no_coords":   False,   # keep coordinate constraints
+        "name":        "mask_layer6",
+        "label":       "Group 1: mask distal only (layer 6, >20A)",
+        "mask_layers": [6],
+        "fixed_mode":  "core_shell",
     },
     {
-        "name":        "mask_layer3_4",
-        "label":       "Mask intermediate + distal (Layer 3, 4)",
-        "mask_layers": [3, 4],
-        "no_coords":   False,   # keep coordinate constraints
+        "name":        "mask_layer5_6",
+        "label":       "Group 2: mask layer 5+6 (>17A)",
+        "mask_layers": [5, 6],
+        "fixed_mode":  "core_shell",
     },
     {
-        "name":        "seq_only_control",
-        "label":       "Control: sequence-only, no coordinates",
-        "mask_layers": [3, 4],  # same mask range as condition 2 for direct comparison
-        "no_coords":   True,    # remove all coordinates
+        "name":        "mask_layer4_5_6",
+        "label":       "Group 3: mask layer 4+5+6 (>14A)",
+        "mask_layers": [4, 5, 6],
+        "fixed_mode":  "core_shell",
+    },
+    {
+        "name":        "mask_layer3_6",
+        "label":       "Group 4: mask layer 3+4+5+6 (shell fixed)",
+        "mask_layers": [3, 4, 5, 6],
+        "fixed_mode":  "core_shell",
+    },
+    {
+        "name":        "mask_layer2_6",
+        "label":       "Group 5: mask layer 2+3+4+5+6 (core only fixed)",
+        "mask_layers": [2, 3, 4, 5, 6],
+        "fixed_mode":  "core_only",
     },
 ]
 
 # ============================================================
-# 4. Generation parameters
+# 3. Protein definitions
 # ============================================================
-N_SAMPLES          = 3
-STRUCT_NUM_STEPS   = 8
-STRUCT_TEMPERATURE = 0.7
+PROTEINS = [
+    # ---- CA II (human, PDB: 1CA2) ----
+    {
+        "name":       "CA2",
+        "pdb_path":   "1CA2.pdb",
+        "pdb_chain":  "A",
+        "output_file": "results_CA2.txt",
+        "structure_dir": "pdbs_CA2",
+        "seq_length": 256,
+        # Layer 1: Catalytic core
+        # PDB: His64, His94, His96, His119, Thr199
+        "layer_1": {61, 91, 93, 116, 195},
+        # Layer 2: Functional shell
+        # PDB: Tyr7, Asn62, Asn67, Val121, Val143, Leu198, Trp209
+        "layer_2": {4, 59, 64, 118, 139, 194, 205},
+        # Layer 3: Inner zone, <14A (57 residues)
+        "layer_3": {
+            26, 27, 56, 57, 58, 60, 62, 63, 65, 66, 87, 88, 89, 90, 92, 94, 95,
+            100, 101, 102, 103, 104, 111, 112, 113, 114, 115, 117, 119, 138, 140,
+            141, 142, 143, 144, 145, 153, 156, 157, 177, 180, 181, 196, 206, 207,
+            208, 211, 212, 219, 222, 223, 237, 238, 239, 240, 241, 242
+        },
+        # Layer 4: Middle zone, 14-17A (56 residues)
+        "layer_4": {
+            3, 10, 25, 28, 53, 55, 67, 86, 96, 97, 98, 99, 105, 106, 110, 120,
+            137, 146, 150, 152, 154, 155, 159, 160, 163, 164, 166, 169, 172, 175,
+            176, 178, 179, 182, 192, 193, 197, 198, 199, 200, 203, 204, 209, 210,
+            213, 214, 218, 220, 221, 224, 225, 226, 227, 236, 243, 244
+        },
+        # Layer 5: Outer zone, 17-20A (61 residues)
+        "layer_5": {
+            2, 5, 8, 9, 13, 20, 24, 29, 30, 44, 46, 47, 48, 51, 52, 54, 68, 69,
+            74, 75, 76, 85, 108, 109, 121, 127, 128, 130, 131, 136, 147, 148, 149,
+            151, 158, 161, 162, 165, 167, 168, 170, 171, 173, 174, 183, 184, 185,
+            186, 187, 188, 189, 190, 191, 201, 202, 215, 216, 217, 228, 235, 245
+        },
+        # Layer 6: Distal region, >20A (70 residues)
+        "layer_6": {
+            1, 6, 7, 11, 12, 14, 15, 16, 17, 18, 19, 21, 22, 23, 31, 32, 33, 34,
+            35, 36, 37, 38, 39, 40, 41, 42, 43, 45, 49, 50, 70, 71, 72, 73, 77,
+            78, 79, 80, 81, 82, 83, 84, 107, 122, 123, 124, 125, 126, 129, 132,
+            133, 134, 135, 229, 230, 231, 232, 233, 234, 246, 247, 248, 249, 250,
+            251, 252, 253, 254, 255, 256
+        },
+    },
 
-# Mapping from layer index to residue sets (used in structure.py)
-LAYER_MAP = {1: LAYER_1, 2: LAYER_2, 3: LAYER_3, 4: LAYER_4}
+    # ---- CA IX (human, PDB: 5DVX chain A) ----
+    {
+        "name":       "CA9",
+        "pdb_path":   "5DVX_A.pdb",
+        "pdb_chain":  "A",
+        "output_file": "results_CA9.txt",
+        "structure_dir": "pdbs_CA9",
+        "seq_length": 260,
+        # Layer 1: Catalytic core
+        # PDB: His200 (proton shuttle), His226, His228, His251 (Zn), Thr332 (substrate)
+        "layer_1": {61, 87, 89, 112, 193},
+        # Layer 2: Functional shell
+        # PDB: Trp141, Gln203, Gln224, Thr333, Pro334
+        "layer_2": {2, 64, 85, 194, 195},
+        # Layer 3: Inner zone, <14A (61 residues)
+        "layer_3": {
+            23, 24, 56, 57, 58, 59, 60, 62, 63, 65, 66, 67, 83, 84, 86,
+            88, 90, 91, 96, 97, 98, 99, 100, 107, 108, 109, 110, 111, 113, 114,
+            115, 134, 135, 136, 137, 138, 139, 140, 141, 150, 153, 154, 174, 177, 178,
+            192, 203, 204, 205, 206, 209, 210, 217, 220, 221, 232, 233, 234, 235, 236,
+            237
+        },
+        # Layer 4: Middle zone, 14-17A (54 residues)
+        "layer_4": {
+            3, 4, 22, 25, 46, 54, 55, 82, 92, 95, 101, 106, 116, 133, 142,
+            147, 149, 151, 152, 155, 156, 157, 160, 161, 163, 164, 166, 172, 173, 175,
+            176, 179, 190, 191, 196, 197, 198, 201, 202, 207, 208, 211, 212, 216, 218,
+            219, 222, 223, 224, 225, 226, 231, 238, 239
+        },
+        # Layer 5: Outer zone, 17-20A (60 residues)
+        "layer_5": {
+            1, 5, 6, 10, 17, 21, 26, 27, 41, 43, 45, 47, 48, 53, 68,
+            69, 71, 72, 73, 74, 75, 81, 93, 94, 102, 104, 105, 117, 123, 127,
+            131, 132, 143, 146, 148, 158, 159, 162, 165, 167, 168, 169, 170, 171, 180,
+            181, 182, 185, 186, 187, 188, 189, 199, 200, 213, 214, 215, 227, 230, 240
+        },
+        # Layer 6: Distal region, >20A (75 residues)
+        "layer_6": {
+            7, 8, 9, 11, 12, 13, 14, 15, 16, 18, 19, 20, 28, 29, 30,
+            31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 42, 44, 49, 50, 51,
+            52, 70, 76, 77, 78, 79, 80, 103, 118, 119, 120, 121, 122, 124, 125,
+            126, 128, 129, 130, 144, 145, 183, 184, 228, 229, 241, 242, 243, 244, 245,
+            246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260
+        },
+    },
+]
 
-SEQ_NUM_STEPS   = 8
-SEQ_TEMPERATURE = 0.7
+# ============================================================
+# 4. Validation
+# ============================================================
+for _p in PROTEINS:
+    _total = sum(len(_p[f"layer_{i}"]) for i in range(1, 7))
+    assert _total == _p["seq_length"], (
+        f"{_p['name']}: layer total {_total} != seq_length {_p['seq_length']}"
+    )

@@ -1,9 +1,9 @@
 # runner.py
-# Use ESM3 model to generate structure and sequence
-#
-# Experimental group: first generate structure, then generate sequence
-# Control group (no_coords): directly generate sequence, then predict structure
+# Call ESM3 model to generate structure and sequence
+# Path 1 (structure-first): generate structure -> generate sequence
 
+import gc
+import torch
 from esm.models.esm3 import ESM3
 from esm.sdk.api import ESM3InferenceClient, ESMProtein, GenerationConfig
 
@@ -11,36 +11,46 @@ from config import (
     MODEL_NAME, DEVICE,
     STRUCT_NUM_STEPS, STRUCT_TEMPERATURE,
     SEQ_NUM_STEPS, SEQ_TEMPERATURE,
+    BASE_SEED,
 )
 
 
 def load_model(device: str = DEVICE) -> ESM3InferenceClient:
-    print(f"\n[Model] Loading {MODEL_NAME} to {device} ...")
+    print(f"\n[Model] Loading {MODEL_NAME} on {device} ...")
     model = ESM3.from_pretrained(MODEL_NAME).to(device)
-    print("[Model] Load complete")
+    model.eval()
+    print("[Model] Loaded successfully")
     return model
+
+
+def _cleanup_cuda():
+    """Release cached CUDA memory."""
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        try:
+            torch.cuda.ipc_collect()
+        except Exception:
+            pass
 
 
 def run_one_sample(model: ESM3InferenceClient,
                    prompt: ESMProtein,
                    sample_id: int) -> dict | None:
     """
-    Generate a single sample.
-
-    If prompt has coordinates (experimental group):
-        Step 1: generate structure first (coordinate constraints dominate)
-        Step 2: then generate sequence
-
-    If prompt has no coordinates (control group):
-        Step 1: directly generate sequence (sequence-only constraint)
-        Step 2: then predict structure
+    Generate a single sample via Path 1 (structure-first):
+        prompt -> generate structure -> generate sequence
+    Returns None if generation fails.
     """
+    seed = BASE_SEED + sample_id
+
     try:
-        has_coords = (prompt.coordinates is not None)
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
 
-        if has_coords:
-            # Experimental group: structure first, then sequence
-            protein = model.generate(
+        with torch.inference_mode():
+            p1 = model.generate(
                 prompt,
                 GenerationConfig(
                     track="structure",
@@ -48,38 +58,28 @@ def run_one_sample(model: ESM3InferenceClient,
                     temperature=STRUCT_TEMPERATURE,
                 )
             )
-            protein = model.generate(
-                protein,
+            p1 = model.generate(
+                p1,
                 GenerationConfig(
                     track="sequence",
                     num_steps=SEQ_NUM_STEPS,
                     temperature=SEQ_TEMPERATURE,
                 )
             )
-        else:
-            # Control group: sequence first, then structure
-            protein = model.generate(
-                prompt,
-                GenerationConfig(
-                    track="sequence",
-                    num_steps=SEQ_NUM_STEPS,
-                    temperature=SEQ_TEMPERATURE,
-                )
-            )
-            protein = model.generate(
-                protein,
-                GenerationConfig(
-                    track="structure",
-                    num_steps=STRUCT_NUM_STEPS,
-                    temperature=STRUCT_TEMPERATURE,
-                )
-            )
 
-        return {
-            "sequence": protein.sequence,
-            "protein":  protein,
-        }
-
-    except Exception as e:
-        print(f"  [Sample {sample_id}] Generation failed: {e}")
+    except torch.cuda.OutOfMemoryError as e:
+        print(f"  [Sample {sample_id}] Failed: CUDA OOM: {e}")
+        _cleanup_cuda()
         return None
+    except Exception as e:
+        print(f"  [Sample {sample_id}] Failed: {e}")
+        _cleanup_cuda()
+        return None
+
+    result = {
+        "struct_sequence": p1.sequence,
+        "struct_protein":  p1,
+    }
+
+    _cleanup_cuda()
+    return result

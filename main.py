@@ -87,8 +87,9 @@ def run_protein(protein_cfg: dict, model, conditions: list, n_samples: int):
                     "mask_layers":     mask_layers,
                     "sample_id":       sample_id,
                     "sequence":        None,
+                    "seq_identity":    None,
                     "rmsd_layer1":     None,
-                    "rmsd_layer2":     None,
+                    "rmsd_constrained": None,
                     "rmsd_global":     None,
                     "lddt_layer1":     None,
                     "lddt_global":     None,
@@ -100,22 +101,27 @@ def run_protein(protein_cfg: dict, model, conditions: list, n_samples: int):
                     record["error"] = "generation failed"
                     write("  Generation failed")
                 else:
-                    coords = result["struct_protein"].coordinates
-                    record["sequence"]    = result["struct_sequence"]
-                    record["protein"]     = result["struct_protein"]
-                    record["rmsd_layer1"] = compute_rmsd(coords, wt_coords, layer_1)
-                    record["rmsd_layer2"] = compute_rmsd(coords, wt_coords, layer_2)
-                    record["rmsd_global"] = compute_rmsd(
+                    coords  = result["struct_protein"].coordinates
+                    gen_seq = result["struct_sequence"]
+                    record["sequence"]     = gen_seq
+                    record["protein"]      = result["struct_protein"]
+                    record["seq_identity"] = round(
+                        sum(a == b for a, b in zip(gen_seq, wt_sequence)) / L, 4
+                    )
+                    record["rmsd_layer1"]      = compute_rmsd(coords, wt_coords, layer_1)
+                    record["rmsd_constrained"] = compute_rmsd(coords, wt_coords, layer_1 | layer_2)
+                    record["rmsd_global"]      = compute_rmsd(
                         coords, wt_coords, set(range(1, L + 1))
                     )
-                    record["lddt_layer1"] = compute_lddt_ca(coords, wt_coords, layer_1)
-                    record["lddt_global"] = compute_lddt_ca(
+                    record["lddt_layer1"]  = compute_lddt_ca(coords, wt_coords, layer_1)
+                    record["lddt_global"]  = compute_lddt_ca(
                         coords, wt_coords, set(range(1, L + 1))
                     )
 
-                    write(f"    Sequence:              {result['struct_sequence']}")
+                    write(f"    Sequence:              {gen_seq}")
+                    write(f"    Seq identity to WT:    {record['seq_identity']}")
                     write(f"    Catalytic core RMSD:   {record['rmsd_layer1']} A")
-                    write(f"    Functional shell RMSD: {record['rmsd_layer2']} A")
+                    write(f"    Constrained site RMSD: {record['rmsd_constrained']} A")
                     write(f"    Global RMSD:           {record['rmsd_global']} A")
                     write(f"    Catalytic core lDDT:   {record['lddt_layer1']}")
                     write(f"    Global lDDT:           {record['lddt_global']}")
@@ -130,26 +136,38 @@ def run_protein(protein_cfg: dict, model, conditions: list, n_samples: int):
             write(f"  Valid samples: {len(valid)}/{n_samples}")
 
             if valid:
-                globals_rmsd = [r["rmsd_global"] for r in valid]
-                cores_rmsd   = [r["rmsd_layer1"] for r in valid]
+                globals_rmsd     = [r["rmsd_global"] for r in valid]
+                cores_rmsd       = [r["rmsd_layer1"] for r in valid if r["rmsd_layer1"] is not None]
+                constrained_rmsd = [r["rmsd_constrained"] for r in valid if r["rmsd_constrained"] is not None]
+                seq_ids          = [r["seq_identity"] for r in valid if r["seq_identity"] is not None]
+
                 avg_g = sum(globals_rmsd) / len(globals_rmsd)
-                avg_c = sum(cores_rmsd) / len(cores_rmsd)
                 std_g = math.sqrt(sum((x - avg_g)**2 for x in globals_rmsd) / len(globals_rmsd))
-                std_c = math.sqrt(sum((x - avg_c)**2 for x in cores_rmsd) / len(cores_rmsd))
 
                 lddt_g = [r["lddt_global"] for r in valid if r["lddt_global"] is not None]
                 lddt_c = [r["lddt_layer1"] for r in valid if r["lddt_layer1"] is not None]
 
-                write(f"    Mean global RMSD:         {avg_g:.3f} +/- {std_g:.3f} A")
-                write(f"    Mean catalytic core RMSD: {avg_c:.3f} +/- {std_c:.3f} A")
+                write(f"    Mean global RMSD:           {avg_g:.3f} +/- {std_g:.3f} A")
+                if cores_rmsd:
+                    avg_c = sum(cores_rmsd) / len(cores_rmsd)
+                    std_c = math.sqrt(sum((x - avg_c)**2 for x in cores_rmsd) / len(cores_rmsd))
+                    write(f"    Mean catalytic core RMSD:   {avg_c:.3f} +/- {std_c:.3f} A")
+                if constrained_rmsd:
+                    avg_cs = sum(constrained_rmsd) / len(constrained_rmsd)
+                    std_cs = math.sqrt(sum((x - avg_cs)**2 for x in constrained_rmsd) / len(constrained_rmsd))
+                    write(f"    Mean constrained site RMSD: {avg_cs:.3f} +/- {std_cs:.3f} A")
                 if lddt_g:
                     avg_lg = sum(lddt_g) / len(lddt_g)
                     std_lg = math.sqrt(sum((x - avg_lg)**2 for x in lddt_g) / len(lddt_g))
-                    write(f"    Mean global lDDT-CA:      {avg_lg:.4f} +/- {std_lg:.4f}")
+                    write(f"    Mean global lDDT-CA:        {avg_lg:.4f} +/- {std_lg:.4f}")
                 if lddt_c:
                     avg_lc = sum(lddt_c) / len(lddt_c)
                     std_lc = math.sqrt(sum((x - avg_lc)**2 for x in lddt_c) / len(lddt_c))
-                    write(f"    Mean core lDDT-CA:        {avg_lc:.4f} +/- {std_lc:.4f}")
+                    write(f"    Mean core lDDT-CA:          {avg_lc:.4f} +/- {std_lc:.4f}")
+                if seq_ids:
+                    avg_si = sum(seq_ids) / len(seq_ids)
+                    std_si = math.sqrt(sum((x - avg_si)**2 for x in seq_ids) / len(seq_ids))
+                    write(f"    Mean seq identity to WT:    {avg_si:.4f} +/- {std_si:.4f}")
 
                 # Save best PDB
                 best = min(valid, key=lambda r: r["rmsd_global"])
@@ -176,17 +194,24 @@ def run_protein(protein_cfg: dict, model, conditions: list, n_samples: int):
             ]
             write(f"\n  {cond_label} ({len(valid)} valid samples)")
             if valid:
-                globals_rmsd = [r["rmsd_global"] for r in valid]
-                cores_rmsd   = [r["rmsd_layer1"] for r in valid]
+                globals_rmsd     = [r["rmsd_global"] for r in valid]
+                cores_rmsd       = [r["rmsd_layer1"] for r in valid if r["rmsd_layer1"] is not None]
+                constrained_rmsd = [r["rmsd_constrained"] for r in valid if r["rmsd_constrained"] is not None]
                 lddt_g = [r["lddt_global"] for r in valid if r["lddt_global"] is not None]
                 lddt_c = [r["lddt_layer1"] for r in valid if r["lddt_layer1"] is not None]
-                write(f"    Mean global RMSD:         {sum(globals_rmsd)/len(globals_rmsd):.3f} A")
-                write(f"    Mean catalytic core RMSD: {sum(cores_rmsd)/len(cores_rmsd):.3f} A")
-                write(f"    Best global RMSD:         {min(globals_rmsd):.3f} A")
+                seq_ids = [r["seq_identity"] for r in valid if r["seq_identity"] is not None]
+                write(f"    Mean global RMSD:           {sum(globals_rmsd)/len(globals_rmsd):.3f} A")
+                if cores_rmsd:
+                    write(f"    Mean catalytic core RMSD:   {sum(cores_rmsd)/len(cores_rmsd):.3f} A")
+                if constrained_rmsd:
+                    write(f"    Mean constrained site RMSD: {sum(constrained_rmsd)/len(constrained_rmsd):.3f} A")
+                write(f"    Best global RMSD:           {min(globals_rmsd):.3f} A")
                 if lddt_g:
-                    write(f"    Mean global lDDT-CA:      {sum(lddt_g)/len(lddt_g):.4f}")
+                    write(f"    Mean global lDDT-CA:        {sum(lddt_g)/len(lddt_g):.4f}")
                 if lddt_c:
-                    write(f"    Mean core lDDT-CA:        {sum(lddt_c)/len(lddt_c):.4f}")
+                    write(f"    Mean core lDDT-CA:          {sum(lddt_c)/len(lddt_c):.4f}")
+                if seq_ids:
+                    write(f"    Mean seq identity to WT:    {sum(seq_ids)/len(seq_ids):.4f}")
         write("=" * 60)
 
     print(f"\n[{pname}] Results saved to: {output_path}")
@@ -229,6 +254,7 @@ def plot_results(all_results: list, protein_name: str):
 
     x_labels = []
     global_rmsd, global_rmsd_err = [], []
+    core_rmsd, core_rmsd_err = [], []
     global_lddt, global_lddt_err = [], []
 
     for cond_name, _ in conditions:
@@ -236,6 +262,8 @@ def plot_results(all_results: list, protein_name: str):
         recs = [r for r in all_results if r["condition_name"] == cond_name]
         m, s = _gather(recs, "rmsd_global")
         global_rmsd.append(m); global_rmsd_err.append(s)
+        m, s = _gather(recs, "rmsd_layer1")
+        core_rmsd.append(m); core_rmsd_err.append(s)
         m, s = _gather(recs, "lddt_global")
         global_lddt.append(m); global_lddt_err.append(s)
 
@@ -248,15 +276,18 @@ def plot_results(all_results: list, protein_name: str):
         xv, mv, ev = zip(*valid)
         ax.errorbar(list(xv), list(mv), yerr=list(ev), **kwargs)
 
-    # Figure 1: RMSD
+    # Figure 1: RMSD (global + core)
     fig1, ax1 = plt.subplots(figsize=(7, 4.5))
     _safe_plot(ax1, x, global_rmsd, global_rmsd_err,
                fmt='o-', capsize=4, label='Global Backbone RMSD',
                color='#2196F3', linewidth=2, markersize=7)
+    _safe_plot(ax1, x, core_rmsd, core_rmsd_err,
+               fmt='s--', capsize=4, label='Core cRMSD (Layer 1)',
+               color='#E53935', linewidth=2, markersize=7)
     ax1.set_xticks(x)
     ax1.set_xticklabels(x_labels)
     ax1.set_xlabel('Masking Condition')
-    ax1.set_ylabel('Global Backbone RMSD (Å)')
+    ax1.set_ylabel('Backbone RMSD (Å)')
     ax1.set_title(f'{protein_name}: Backbone RMSD vs. Masking Extent')
     ax1.legend(fontsize=9)
     ax1.grid(True, alpha=0.3)

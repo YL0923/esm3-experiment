@@ -107,17 +107,14 @@ fig2_lddt_{name}.png         # lDDT trend plot
 
 - [x] Pipeline code complete (config / structure / runner / main)
 - [x] CA II layer definitions (literature-based L1–2 + distance-based L3–6)
-- [x] CA IX layer definitions (same approach, PDB-to-sequence mapping verified)
-- [x] CPA layer definitions (same approach, 5CPA verified)
-- [x] Multi-protein single-run architecture (model loaded once)
+- [x] CA IX layer definitions (same approach)
+- [x] CPA layer definitions (same approach)
 - [x] Backbone RMSD (N, Cα, C) + lDDT-CA + sequence identity metrics
-- [x] Core cRMSD + constrained site RMSD (Layer 1+2) + global RMSD
 - [x] Auto-generated per-protein trend plots (global RMSD + core cRMSD on same figure)
-- [x] Initial run completed for CA2 + CA9 (num_steps=8)
-- [x] Full run with all 3 proteins (num_steps=128, production setting)
-- [ ] Results analysis and combined multi-protein comparison plots
+- [x] Initial run completed for CA2 + CA9 + CPA (num_steps=8)
+- [ ] Results analysis
 - [ ] PyMOL structure overlay visualization
-- [ ] AlphaFold validation (fold ESM3-generated sequences with AF, compare to WT)
+- [ ] AlphaFold validation
 
 ## Key Technical Decisions
 

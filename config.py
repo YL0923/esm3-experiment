@@ -7,10 +7,10 @@
 # ============================================================
 MODEL_NAME         = "esm3-sm-open-v1"
 DEVICE             = "cuda"
-N_SAMPLES          = 10
-STRUCT_NUM_STEPS   = 128
+N_SAMPLES          = 16
+STRUCT_NUM_STEPS   = 16
 STRUCT_TEMPERATURE = 0.7
-SEQ_NUM_STEPS      = 128
+SEQ_NUM_STEPS      = 16
 SEQ_TEMPERATURE    = 0.7
 BASE_SEED          = 42
 

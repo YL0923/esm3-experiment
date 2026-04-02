@@ -9,7 +9,7 @@ import math
 from pathlib import Path
 
 from config import PROTEINS, CONDITIONS, N_SAMPLES
-from structure import load_pdb, build_prompt, compute_rmsd, compute_lddt_ca
+from structure import load_pdb, build_prompt, global_align, compute_rmsd, compute_lddt_ca
 from runner import load_model, run_one_sample
 
 
@@ -34,7 +34,11 @@ def run_protein(protein_cfg: dict, model, conditions: list, n_samples: int):
 
     # ---- Prepare output ----
     Path(struct_dir).mkdir(parents=True, exist_ok=True)
-    output_path = Path(out_file)
+    Path("results").mkdir(parents=True, exist_ok=True)
+    Path("figures/per_protein").mkdir(parents=True, exist_ok=True)
+    Path("figures/cross_protein").mkdir(parents=True, exist_ok=True)
+    Path("sequences").mkdir(parents=True, exist_ok=True)
+    output_path = Path("results") / out_file
 
     # ---- Load WT structure ----
     wt_protein  = load_pdb(pdb_path, pdb_chain)
@@ -92,6 +96,7 @@ def run_protein(protein_cfg: dict, model, conditions: list, n_samples: int):
                     "rmsd_constrained": None,
                     "rmsd_global":     None,
                     "lddt_layer1":     None,
+                    "lddt_constrained": None,
                     "lddt_global":     None,
                     "error":           None,
                     "protein":         None,
@@ -108,14 +113,20 @@ def run_protein(protein_cfg: dict, model, conditions: list, n_samples: int):
                     record["seq_identity"] = round(
                         sum(a == b for a, b in zip(gen_seq, wt_sequence)) / L, 4
                     )
-                    record["rmsd_layer1"]      = compute_rmsd(coords, wt_coords, layer_1)
-                    record["rmsd_constrained"] = compute_rmsd(coords, wt_coords, layer_1 | layer_2)
-                    record["rmsd_global"]      = compute_rmsd(
-                        coords, wt_coords, set(range(1, L + 1))
-                    )
+
+                    # Align once on ALL residues, then evaluate per-region
+                    all_positions = set(range(1, L + 1))
+                    coords_aligned = global_align(coords, wt_coords, all_positions)
+
+                    if coords_aligned is not None:
+                        record["rmsd_layer1"]      = compute_rmsd(coords_aligned, wt_coords, layer_1)
+                        record["rmsd_constrained"] = compute_rmsd(coords_aligned, wt_coords, layer_1 | layer_2)
+                        record["rmsd_global"]      = compute_rmsd(coords_aligned, wt_coords, all_positions)
+
                     record["lddt_layer1"]  = compute_lddt_ca(coords, wt_coords, layer_1)
+                    record["lddt_constrained"] = compute_lddt_ca(coords, wt_coords, layer_1 | layer_2)
                     record["lddt_global"]  = compute_lddt_ca(
-                        coords, wt_coords, set(range(1, L + 1))
+                        coords, wt_coords, all_positions
                     )
 
                     write(f"    Sequence:              {gen_seq}")
@@ -124,6 +135,7 @@ def run_protein(protein_cfg: dict, model, conditions: list, n_samples: int):
                     write(f"    Constrained site RMSD: {record['rmsd_constrained']} A")
                     write(f"    Global RMSD:           {record['rmsd_global']} A")
                     write(f"    Catalytic core lDDT:   {record['lddt_layer1']}")
+                    write(f"    Constrained site lDDT: {record['lddt_constrained']}")
                     write(f"    Global lDDT:           {record['lddt_global']}")
 
                 group_records.append(record)
@@ -146,6 +158,7 @@ def run_protein(protein_cfg: dict, model, conditions: list, n_samples: int):
 
                 lddt_g = [r["lddt_global"] for r in valid if r["lddt_global"] is not None]
                 lddt_c = [r["lddt_layer1"] for r in valid if r["lddt_layer1"] is not None]
+                lddt_cs = [r["lddt_constrained"] for r in valid if r["lddt_constrained"] is not None]
 
                 write(f"    Mean global RMSD:           {avg_g:.3f} +/- {std_g:.3f} A")
                 if cores_rmsd:
@@ -164,6 +177,10 @@ def run_protein(protein_cfg: dict, model, conditions: list, n_samples: int):
                     avg_lc = sum(lddt_c) / len(lddt_c)
                     std_lc = math.sqrt(sum((x - avg_lc)**2 for x in lddt_c) / len(lddt_c))
                     write(f"    Mean core lDDT-CA:          {avg_lc:.4f} +/- {std_lc:.4f}")
+                if lddt_cs:
+                    avg_lcs = sum(lddt_cs) / len(lddt_cs)
+                    std_lcs = math.sqrt(sum((x - avg_lcs)**2 for x in lddt_cs) / len(lddt_cs))
+                    write(f"    Mean constrained lDDT-CA:   {avg_lcs:.4f} +/- {std_lcs:.4f}")
                 if seq_ids:
                     avg_si = sum(seq_ids) / len(seq_ids)
                     std_si = math.sqrt(sum((x - avg_si)**2 for x in seq_ids) / len(seq_ids))
@@ -199,6 +216,7 @@ def run_protein(protein_cfg: dict, model, conditions: list, n_samples: int):
                 constrained_rmsd = [r["rmsd_constrained"] for r in valid if r["rmsd_constrained"] is not None]
                 lddt_g = [r["lddt_global"] for r in valid if r["lddt_global"] is not None]
                 lddt_c = [r["lddt_layer1"] for r in valid if r["lddt_layer1"] is not None]
+                lddt_cs = [r["lddt_constrained"] for r in valid if r["lddt_constrained"] is not None]
                 seq_ids = [r["seq_identity"] for r in valid if r["seq_identity"] is not None]
                 write(f"    Mean global RMSD:           {sum(globals_rmsd)/len(globals_rmsd):.3f} A")
                 if cores_rmsd:
@@ -210,6 +228,8 @@ def run_protein(protein_cfg: dict, model, conditions: list, n_samples: int):
                     write(f"    Mean global lDDT-CA:        {sum(lddt_g)/len(lddt_g):.4f}")
                 if lddt_c:
                     write(f"    Mean core lDDT-CA:          {sum(lddt_c)/len(lddt_c):.4f}")
+                if lddt_cs:
+                    write(f"    Mean constrained lDDT-CA:   {sum(lddt_cs)/len(lddt_cs):.4f}")
                 if seq_ids:
                     write(f"    Mean seq identity to WT:    {sum(seq_ids)/len(seq_ids):.4f}")
         write("=" * 60)
@@ -217,12 +237,25 @@ def run_protein(protein_cfg: dict, model, conditions: list, n_samples: int):
     print(f"\n[{pname}] Results saved to: {output_path}")
     print(f"[{pname}] Best PDBs saved to: {struct_dir}/")
 
+    # ---- Save all sequences as FASTA for AlphaFold validation ----
+    fasta_file = Path("sequences") / f"sequences_{pname}.fasta"
+    n_seqs = 0
+    with open(fasta_file, 'w', encoding='utf-8') as f:
+        for r in all_results:
+            if r["sequence"] is not None:
+                f.write(f">{pname}_{r['condition_name']}_s{r['sample_id']}\n")
+                f.write(r["sequence"] + '\n')
+                n_seqs += 1
+    print(f"[{pname}] Sequences saved: {fasta_file} ({n_seqs} sequences)")
+
     # ---- Generate plots ----
     plot_results(all_results, pname)
 
+    return all_results
+
 
 def plot_results(all_results: list, protein_name: str):
-    """Generate RMSD and lDDT trend plots for one protein."""
+    """Generate RMSD, lDDT, and seq identity trend plots for one protein."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -256,6 +289,8 @@ def plot_results(all_results: list, protein_name: str):
     global_rmsd, global_rmsd_err = [], []
     core_rmsd, core_rmsd_err = [], []
     global_lddt, global_lddt_err = [], []
+    core_lddt, core_lddt_err = [], []
+    seq_id, seq_id_err = [], []
 
     for cond_name, _ in conditions:
         x_labels.append(short_labels.get(cond_name, cond_name))
@@ -266,6 +301,10 @@ def plot_results(all_results: list, protein_name: str):
         core_rmsd.append(m); core_rmsd_err.append(s)
         m, s = _gather(recs, "lddt_global")
         global_lddt.append(m); global_lddt_err.append(s)
+        m, s = _gather(recs, "lddt_layer1")
+        core_lddt.append(m); core_lddt_err.append(s)
+        m, s = _gather(recs, "seq_identity")
+        seq_id.append(m); seq_id_err.append(s)
 
     x = np.arange(len(x_labels))
 
@@ -292,29 +331,157 @@ def plot_results(all_results: list, protein_name: str):
     ax1.legend(fontsize=9)
     ax1.grid(True, alpha=0.3)
     fig1.tight_layout()
-    fname1 = f"fig1_rmsd_{protein_name}.png"
+    fname1 = f"figures/per_protein/rmsd_{protein_name}.png"
     fig1.savefig(fname1, dpi=150)
     plt.close(fig1)
     print(f"[Plot] Saved {fname1}")
 
-    # Figure 2: lDDT
+    # Figure 2: lDDT (global + core)
     fig2, ax2 = plt.subplots(figsize=(7, 4.5))
     _safe_plot(ax2, x, global_lddt, global_lddt_err,
                fmt='o-', capsize=4, label='Global lDDT-CA',
                color='#2196F3', linewidth=2, markersize=7)
+    _safe_plot(ax2, x, core_lddt, core_lddt_err,
+               fmt='s--', capsize=4, label='Core lDDT-CA (Layer 1)',
+               color='#E53935', linewidth=2, markersize=7)
     ax2.set_xticks(x)
     ax2.set_xticklabels(x_labels)
     ax2.set_xlabel('Masking Condition')
-    ax2.set_ylabel('Global lDDT-CA')
+    ax2.set_ylabel('lDDT-CA')
     ax2.set_title(f'{protein_name}: lDDT-CA vs. Masking Extent')
     ax2.set_ylim(0, 1.05)
     ax2.legend(fontsize=9)
     ax2.grid(True, alpha=0.3)
     fig2.tight_layout()
-    fname2 = f"fig2_lddt_{protein_name}.png"
+    fname2 = f"figures/per_protein/lddt_{protein_name}.png"
     fig2.savefig(fname2, dpi=150)
     plt.close(fig2)
     print(f"[Plot] Saved {fname2}")
+
+    # Figure 3: Sequence identity
+    fig3, ax3 = plt.subplots(figsize=(7, 4.5))
+    _safe_plot(ax3, x, seq_id, seq_id_err,
+               fmt='o-', capsize=4, label='Seq Identity to WT',
+               color='#4CAF50', linewidth=2, markersize=7)
+    ax3.set_xticks(x)
+    ax3.set_xticklabels(x_labels)
+    ax3.set_xlabel('Masking Condition')
+    ax3.set_ylabel('Sequence Identity')
+    ax3.set_title(f'{protein_name}: Sequence Identity vs. Masking Extent')
+    ax3.set_ylim(0, 1.05)
+    ax3.legend(fontsize=9)
+    ax3.grid(True, alpha=0.3)
+    fig3.tight_layout()
+    fname3 = f"figures/per_protein/seqid_{protein_name}.png"
+    fig3.savefig(fname3, dpi=150)
+    plt.close(fig3)
+    print(f"[Plot] Saved {fname3}")
+
+
+def plot_cross_protein(all_protein_results: dict):
+    """
+    Generate cross-protein comparison plots.
+    all_protein_results: {protein_name: [records]}
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    cond_order = [
+        "mask_layer6", "mask_layer5_6", "mask_layer4_5_6",
+        "mask_layer3_6", "mask_layer2_6",
+    ]
+    short_labels = ["G1\n(L6)", "G2\n(L5-6)", "G3\n(L4-6)", "G4\n(L3-6)", "G5\n(L2-6)"]
+
+    colors = {"CA2": "#2196F3", "CA9": "#E53935", "CPA": "#4CAF50"}
+    x = np.arange(len(cond_order))
+
+    def _gather(records, key):
+        vals = [r[key] for r in records if r.get(key) is not None]
+        if not vals:
+            return None, None
+        mean = sum(vals) / len(vals)
+        std = (sum((x - mean) ** 2 for x in vals) / len(vals)) ** 0.5
+        return mean, std
+
+    def _safe_plot(ax, x, means, errs, **kwargs):
+        valid = [(xi, m, e) for xi, m, e in zip(x, means, errs) if m is not None]
+        if not valid:
+            return
+        xv, mv, ev = zip(*valid)
+        ax.errorbar(list(xv), list(mv), yerr=list(ev), **kwargs)
+
+    # ---- Cross-protein Figure 1: Core lDDT ----
+    fig1, ax1 = plt.subplots(figsize=(7, 4.5))
+    for pname, results in all_protein_results.items():
+        means, errs = [], []
+        for cond in cond_order:
+            recs = [r for r in results if r["condition_name"] == cond]
+            m, s = _gather(recs, "lddt_layer1")
+            means.append(m); errs.append(s)
+        _safe_plot(ax1, x, means, errs,
+                   fmt='o-', capsize=4, label=pname,
+                   color=colors.get(pname, '#888'), linewidth=2, markersize=7)
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(short_labels)
+    ax1.set_xlabel('Masking Condition')
+    ax1.set_ylabel('Core lDDT-CA (Layer 1)')
+    ax1.set_title('Catalytic Core Preservation: Cross-Protein Comparison')
+    ax1.set_ylim(0, 1.05)
+    ax1.legend(fontsize=9)
+    ax1.grid(True, alpha=0.3)
+    fig1.tight_layout()
+    fig1.savefig("figures/cross_protein/core_lddt.png", dpi=150)
+    plt.close(fig1)
+    print("[Plot] Saved figures/cross_protein/core_lddt.png")
+
+    # ---- Cross-protein Figure 2: Global RMSD ----
+    fig2, ax2 = plt.subplots(figsize=(7, 4.5))
+    for pname, results in all_protein_results.items():
+        means, errs = [], []
+        for cond in cond_order:
+            recs = [r for r in results if r["condition_name"] == cond]
+            m, s = _gather(recs, "rmsd_global")
+            means.append(m); errs.append(s)
+        _safe_plot(ax2, x, means, errs,
+                   fmt='o-', capsize=4, label=pname,
+                   color=colors.get(pname, '#888'), linewidth=2, markersize=7)
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(short_labels)
+    ax2.set_xlabel('Masking Condition')
+    ax2.set_ylabel('Global Backbone RMSD (Å)')
+    ax2.set_title('Global Structure Quality: Cross-Protein Comparison')
+    ax2.legend(fontsize=9)
+    ax2.grid(True, alpha=0.3)
+    fig2.tight_layout()
+    fig2.savefig("figures/cross_protein/global_rmsd.png", dpi=150)
+    plt.close(fig2)
+    print("[Plot] Saved figures/cross_protein/global_rmsd.png")
+
+    # ---- Cross-protein Figure 3: Sequence Identity ----
+    fig3, ax3 = plt.subplots(figsize=(7, 4.5))
+    for pname, results in all_protein_results.items():
+        means, errs = [], []
+        for cond in cond_order:
+            recs = [r for r in results if r["condition_name"] == cond]
+            m, s = _gather(recs, "seq_identity")
+            means.append(m); errs.append(s)
+        _safe_plot(ax3, x, means, errs,
+                   fmt='o-', capsize=4, label=pname,
+                   color=colors.get(pname, '#888'), linewidth=2, markersize=7)
+    ax3.set_xticks(x)
+    ax3.set_xticklabels(short_labels)
+    ax3.set_xlabel('Masking Condition')
+    ax3.set_ylabel('Sequence Identity to WT')
+    ax3.set_title('Sequence Divergence: Cross-Protein Comparison')
+    ax3.set_ylim(0, 1.05)
+    ax3.legend(fontsize=9)
+    ax3.grid(True, alpha=0.3)
+    fig3.tight_layout()
+    fig3.savefig("figures/cross_protein/seqid.png", dpi=150)
+    plt.close(fig3)
+    print("[Plot] Saved figures/cross_protein/seqid.png")
 
 
 def main():
@@ -326,8 +493,14 @@ def main():
     # Load model once, share across all proteins
     model = load_model()
 
+    all_protein_results = {}
     for protein_cfg in PROTEINS:
-        run_protein(protein_cfg, model, CONDITIONS, N_SAMPLES)
+        results = run_protein(protein_cfg, model, CONDITIONS, N_SAMPLES)
+        all_protein_results[protein_cfg["name"]] = results
+
+    # Cross-protein comparison plots
+    if len(all_protein_results) > 1:
+        plot_cross_protein(all_protein_results)
 
     print("\n" + "=" * 60)
     print("  All proteins completed!")

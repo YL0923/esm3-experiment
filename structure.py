@@ -100,14 +100,20 @@ def kabsch_align(P: torch.Tensor, Q: torch.Tensor) -> torch.Tensor:
     return (P_c @ R.T) + q_center
 
 
-def compute_rmsd(coords_gen: torch.Tensor,
+def global_align(coords_gen: torch.Tensor,
                  coords_wt: torch.Tensor,
-                 positions: set) -> float | None:
+                 align_positions: set) -> torch.Tensor | None:
     """
-    Compute backbone RMSD (N, CA, C, O) with Kabsch alignment.
+    Kabsch-align the ENTIRE generated structure onto WT using backbone
+    atoms (N, CA, C) at *align_positions*.  Returns the fully aligned
+    coords_gen tensor (same shape as input), or None on failure.
+
+    By aligning on a large set of residues (e.g. all residues), the
+    rotation/translation is well-determined and subsequent per-region
+    RMSD values are not inflated or deflated by alignment artefacts.
     """
     gen_bb, wt_bb = [], []
-    for pos_1based in sorted(positions):
+    for pos_1based in sorted(align_positions):
         idx = pos_1based - 1
         if idx >= coords_gen.shape[0] or idx >= coords_wt.shape[0]:
             continue
@@ -124,13 +130,60 @@ def compute_rmsd(coords_gen: torch.Tensor,
     gen_bb = torch.cat(gen_bb, dim=0).float()
     wt_bb  = torch.cat(wt_bb, dim=0).float()
 
-    # Safety check: SVD will fail on non-finite values
     if not torch.isfinite(gen_bb).all() or not torch.isfinite(wt_bb).all():
         return None
 
-    gen_aligned = kabsch_align(gen_bb, wt_bb)
-    diff = gen_aligned - wt_bb
-    rmsd = torch.sqrt((diff ** 2).sum(dim=-1).mean()).item()
+    # Compute alignment transform from the selected positions
+    p_center = gen_bb.mean(dim=0)
+    q_center = wt_bb.mean(dim=0)
+    P_c = gen_bb - p_center
+    Q_c = wt_bb - q_center
+
+    H = P_c.T @ Q_c
+    U, S, Vt = torch.linalg.svd(H)
+    d = torch.linalg.det(Vt.T @ U.T)
+    D = torch.diag(torch.tensor([1.0, 1.0, d], dtype=gen_bb.dtype, device=gen_bb.device))
+    R = Vt.T @ D @ U.T
+
+    # Apply the SAME transform to ALL atoms in coords_gen
+    L, n_atoms, _ = coords_gen.shape
+    flat = coords_gen.reshape(-1, 3).float()
+
+    # Handle NaN: keep track of valid atoms
+    valid_mask = torch.isfinite(flat).all(dim=-1)
+    aligned_flat = flat.clone()
+    aligned_flat[valid_mask] = (flat[valid_mask] - p_center) @ R.T + q_center
+
+    return aligned_flat.reshape(L, n_atoms, 3)
+
+
+def compute_rmsd(coords_aligned: torch.Tensor,
+                 coords_wt: torch.Tensor,
+                 positions: set) -> float | None:
+    """
+    Compute backbone RMSD (N, CA, C) on PRE-ALIGNED coordinates.
+    No Kabsch alignment is done here — coords_aligned must already
+    be in the same reference frame as coords_wt (via global_align).
+    """
+    diffs = []
+    for pos_1based in sorted(positions):
+        idx = pos_1based - 1
+        if idx >= coords_aligned.shape[0] or idx >= coords_wt.shape[0]:
+            continue
+        g = coords_aligned[idx, BACKBONE_IDX, :]
+        w = coords_wt[idx, BACKBONE_IDX, :]
+        if torch.isnan(g).any() or torch.isnan(w).any():
+            continue
+        diffs.append(g - w)
+
+    if len(diffs) < 3:
+        return None
+
+    diffs = torch.cat(diffs, dim=0).float()
+    if not torch.isfinite(diffs).all():
+        return None
+
+    rmsd = torch.sqrt((diffs ** 2).sum(dim=-1).mean()).item()
     return round(rmsd, 3)
 
 

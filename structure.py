@@ -186,6 +186,40 @@ def compute_rmsd(coords_aligned: torch.Tensor,
     rmsd = torch.sqrt((diffs ** 2).sum(dim=-1).mean()).item()
     return round(rmsd, 3)
 
+def compute_rmsd_local(coords_gen: torch.Tensor,
+                       coords_wt: torch.Tensor,
+                       positions: set) -> float | None:
+    """
+    Compute backbone RMSD (N, CA, C) with LOCAL Kabsch alignment
+    on the given positions only. This answers: "is the internal
+    geometry of this residue set preserved?" — independent of
+    where the residues are in the global fold.
+    """
+    gen_bb, wt_bb = [], []
+    for pos_1based in sorted(positions):
+        idx = pos_1based - 1
+        if idx >= coords_gen.shape[0] or idx >= coords_wt.shape[0]:
+            continue
+        g = coords_gen[idx, BACKBONE_IDX, :]
+        w = coords_wt[idx, BACKBONE_IDX, :]
+        if torch.isnan(g).any() or torch.isnan(w).any():
+            continue
+        gen_bb.append(g)
+        wt_bb.append(w)
+ 
+    if len(gen_bb) < 3:
+        return None
+ 
+    gen_bb = torch.cat(gen_bb, dim=0).float()
+    wt_bb  = torch.cat(wt_bb, dim=0).float()
+ 
+    if not torch.isfinite(gen_bb).all() or not torch.isfinite(wt_bb).all():
+        return None
+ 
+    aligned = kabsch_align(gen_bb, wt_bb)
+    diffs = aligned - wt_bb
+    rmsd = torch.sqrt((diffs ** 2).sum(dim=-1).mean()).item()
+    return round(rmsd, 3)
 
 def compute_lddt_ca(coords_gen: torch.Tensor,
                     coords_wt: torch.Tensor,

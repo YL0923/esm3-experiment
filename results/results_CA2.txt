@@ -179,7 +179,22 @@ Fixed mode:    core_shell
     Mean core lDDT-CA:          0.9359 +/- 0.0330
     Mean constrained lDDT-CA:   0.9497 +/- 0.0164
     Mean seq identity to WT:    0.8677 +/- 0.0084
-  Best: sample 11 (global RMSD=0.511 A) -> pdbs_CA2/mask_layer6_best.pdb
+  Saved: sample 1 (global RMSD=0.535 A) -> pdbs_CA2/mask_layer6_s1.pdb
+  Saved: sample 2 (global RMSD=0.587 A) -> pdbs_CA2/mask_layer6_s2.pdb
+  Saved: sample 3 (global RMSD=0.565 A) -> pdbs_CA2/mask_layer6_s3.pdb
+  Saved: sample 4 (global RMSD=0.577 A) -> pdbs_CA2/mask_layer6_s4.pdb
+  Saved: sample 5 (global RMSD=0.6 A) -> pdbs_CA2/mask_layer6_s5.pdb
+  Saved: sample 6 (global RMSD=0.554 A) -> pdbs_CA2/mask_layer6_s6.pdb
+  Saved: sample 7 (global RMSD=0.532 A) -> pdbs_CA2/mask_layer6_s7.pdb
+  Saved: sample 8 (global RMSD=0.549 A) -> pdbs_CA2/mask_layer6_s8.pdb
+  Saved: sample 9 (global RMSD=0.53 A) -> pdbs_CA2/mask_layer6_s9.pdb
+  Saved: sample 10 (global RMSD=0.552 A) -> pdbs_CA2/mask_layer6_s10.pdb
+  Saved: sample 11 (global RMSD=0.511 A) -> pdbs_CA2/mask_layer6_s11.pdb
+  Saved: sample 12 (global RMSD=0.575 A) -> pdbs_CA2/mask_layer6_s12.pdb
+  Saved: sample 13 (global RMSD=0.558 A) -> pdbs_CA2/mask_layer6_s13.pdb
+  Saved: sample 14 (global RMSD=0.636 A) -> pdbs_CA2/mask_layer6_s14.pdb
+  Saved: sample 15 (global RMSD=0.561 A) -> pdbs_CA2/mask_layer6_s15.pdb
+  Saved: sample 16 (global RMSD=0.556 A) -> pdbs_CA2/mask_layer6_s16.pdb
 
 ============================================================
 Condition: Group 2: mask layer 5+6 (>17A)
@@ -356,7 +371,22 @@ Fixed mode:    core_shell
     Mean core lDDT-CA:          0.9187 +/- 0.0312
     Mean constrained lDDT-CA:   0.9430 +/- 0.0216
     Mean seq identity to WT:    0.6763 +/- 0.0140
-  Best: sample 8 (global RMSD=0.851 A) -> pdbs_CA2/mask_layer5_6_best.pdb
+  Saved: sample 1 (global RMSD=0.911 A) -> pdbs_CA2/mask_layer5_6_s1.pdb
+  Saved: sample 2 (global RMSD=0.982 A) -> pdbs_CA2/mask_layer5_6_s2.pdb
+  Saved: sample 3 (global RMSD=0.952 A) -> pdbs_CA2/mask_layer5_6_s3.pdb
+  Saved: sample 4 (global RMSD=1.226 A) -> pdbs_CA2/mask_layer5_6_s4.pdb
+  Saved: sample 5 (global RMSD=0.964 A) -> pdbs_CA2/mask_layer5_6_s5.pdb
+  Saved: sample 6 (global RMSD=0.958 A) -> pdbs_CA2/mask_layer5_6_s6.pdb
+  Saved: sample 7 (global RMSD=1.102 A) -> pdbs_CA2/mask_layer5_6_s7.pdb
+  Saved: sample 8 (global RMSD=0.851 A) -> pdbs_CA2/mask_layer5_6_s8.pdb
+  Saved: sample 9 (global RMSD=1.134 A) -> pdbs_CA2/mask_layer5_6_s9.pdb
+  Saved: sample 10 (global RMSD=1.185 A) -> pdbs_CA2/mask_layer5_6_s10.pdb
+  Saved: sample 11 (global RMSD=0.921 A) -> pdbs_CA2/mask_layer5_6_s11.pdb
+  Saved: sample 12 (global RMSD=0.917 A) -> pdbs_CA2/mask_layer5_6_s12.pdb
+  Saved: sample 13 (global RMSD=0.953 A) -> pdbs_CA2/mask_layer5_6_s13.pdb
+  Saved: sample 14 (global RMSD=0.951 A) -> pdbs_CA2/mask_layer5_6_s14.pdb
+  Saved: sample 15 (global RMSD=1.062 A) -> pdbs_CA2/mask_layer5_6_s15.pdb
+  Saved: sample 16 (global RMSD=1.479 A) -> pdbs_CA2/mask_layer5_6_s16.pdb
 
 ============================================================
 Condition: Group 3: mask layer 4+5+6 (>14A)
@@ -533,7 +563,22 @@ Fixed mode:    core_shell
     Mean core lDDT-CA:          0.9297 +/- 0.0525
     Mean constrained lDDT-CA:   0.9378 +/- 0.0329
     Mean seq identity to WT:    0.5459 +/- 0.0222
-  Best: sample 13 (global RMSD=1.507 A) -> pdbs_CA2/mask_layer4_5_6_best.pdb
+  Saved: sample 1 (global RMSD=1.996 A) -> pdbs_CA2/mask_layer4_5_6_s1.pdb
+  Saved: sample 2 (global RMSD=1.92 A) -> pdbs_CA2/mask_layer4_5_6_s2.pdb
+  Saved: sample 3 (global RMSD=1.565 A) -> pdbs_CA2/mask_layer4_5_6_s3.pdb
+  Saved: sample 4 (global RMSD=1.919 A) -> pdbs_CA2/mask_layer4_5_6_s4.pdb
+  Saved: sample 5 (global RMSD=1.701 A) -> pdbs_CA2/mask_layer4_5_6_s5.pdb
+  Saved: sample 6 (global RMSD=1.641 A) -> pdbs_CA2/mask_layer4_5_6_s6.pdb
+  Saved: sample 7 (global RMSD=1.524 A) -> pdbs_CA2/mask_layer4_5_6_s7.pdb
+  Saved: sample 8 (global RMSD=1.715 A) -> pdbs_CA2/mask_layer4_5_6_s8.pdb
+  Saved: sample 9 (global RMSD=1.695 A) -> pdbs_CA2/mask_layer4_5_6_s9.pdb
+  Saved: sample 10 (global RMSD=2.144 A) -> pdbs_CA2/mask_layer4_5_6_s10.pdb
+  Saved: sample 11 (global RMSD=2.079 A) -> pdbs_CA2/mask_layer4_5_6_s11.pdb
+  Saved: sample 12 (global RMSD=1.561 A) -> pdbs_CA2/mask_layer4_5_6_s12.pdb
+  Saved: sample 13 (global RMSD=1.507 A) -> pdbs_CA2/mask_layer4_5_6_s13.pdb
+  Saved: sample 14 (global RMSD=1.626 A) -> pdbs_CA2/mask_layer4_5_6_s14.pdb
+  Saved: sample 15 (global RMSD=1.717 A) -> pdbs_CA2/mask_layer4_5_6_s15.pdb
+  Saved: sample 16 (global RMSD=2.059 A) -> pdbs_CA2/mask_layer4_5_6_s16.pdb
 
 ============================================================
 Condition: Group 4: mask layer 3+4+5+6 (shell fixed)
@@ -710,7 +755,22 @@ Fixed mode:    core_shell
     Mean core lDDT-CA:          0.8859 +/- 0.0625
     Mean constrained lDDT-CA:   0.8807 +/- 0.0410
     Mean seq identity to WT:    0.3691 +/- 0.0275
-  Best: sample 6 (global RMSD=2.909 A) -> pdbs_CA2/mask_layer3_4_5_6_best.pdb
+  Saved: sample 1 (global RMSD=4.393 A) -> pdbs_CA2/mask_layer3_4_5_6_s1.pdb
+  Saved: sample 2 (global RMSD=3.788 A) -> pdbs_CA2/mask_layer3_4_5_6_s2.pdb
+  Saved: sample 3 (global RMSD=4.758 A) -> pdbs_CA2/mask_layer3_4_5_6_s3.pdb
+  Saved: sample 4 (global RMSD=4.546 A) -> pdbs_CA2/mask_layer3_4_5_6_s4.pdb
+  Saved: sample 5 (global RMSD=3.015 A) -> pdbs_CA2/mask_layer3_4_5_6_s5.pdb
+  Saved: sample 6 (global RMSD=2.909 A) -> pdbs_CA2/mask_layer3_4_5_6_s6.pdb
+  Saved: sample 7 (global RMSD=3.885 A) -> pdbs_CA2/mask_layer3_4_5_6_s7.pdb
+  Saved: sample 8 (global RMSD=4.987 A) -> pdbs_CA2/mask_layer3_4_5_6_s8.pdb
+  Saved: sample 9 (global RMSD=3.924 A) -> pdbs_CA2/mask_layer3_4_5_6_s9.pdb
+  Saved: sample 10 (global RMSD=4.532 A) -> pdbs_CA2/mask_layer3_4_5_6_s10.pdb
+  Saved: sample 11 (global RMSD=4.314 A) -> pdbs_CA2/mask_layer3_4_5_6_s11.pdb
+  Saved: sample 12 (global RMSD=4.133 A) -> pdbs_CA2/mask_layer3_4_5_6_s12.pdb
+  Saved: sample 13 (global RMSD=3.779 A) -> pdbs_CA2/mask_layer3_4_5_6_s13.pdb
+  Saved: sample 14 (global RMSD=4.733 A) -> pdbs_CA2/mask_layer3_4_5_6_s14.pdb
+  Saved: sample 15 (global RMSD=3.161 A) -> pdbs_CA2/mask_layer3_4_5_6_s15.pdb
+  Saved: sample 16 (global RMSD=3.728 A) -> pdbs_CA2/mask_layer3_4_5_6_s16.pdb
 
 ============================================================
 Condition: Group 5: mask layer 2+3+4+5+6 (core only fixed)
@@ -887,7 +947,22 @@ Fixed mode:    core_only
     Mean core lDDT-CA:          0.6922 +/- 0.1162
     Mean constrained lDDT-CA:   0.5031 +/- 0.0927
     Mean seq identity to WT:    0.2149 +/- 0.0477
-  Best: sample 10 (global RMSD=3.863 A) -> pdbs_CA2/mask_layer2_3_4_5_6_best.pdb
+  Saved: sample 1 (global RMSD=6.016 A) -> pdbs_CA2/mask_layer2_3_4_5_6_s1.pdb
+  Saved: sample 2 (global RMSD=7.926 A) -> pdbs_CA2/mask_layer2_3_4_5_6_s2.pdb
+  Saved: sample 3 (global RMSD=7.187 A) -> pdbs_CA2/mask_layer2_3_4_5_6_s3.pdb
+  Saved: sample 4 (global RMSD=5.616 A) -> pdbs_CA2/mask_layer2_3_4_5_6_s4.pdb
+  Saved: sample 5 (global RMSD=8.838 A) -> pdbs_CA2/mask_layer2_3_4_5_6_s5.pdb
+  Saved: sample 6 (global RMSD=8.759 A) -> pdbs_CA2/mask_layer2_3_4_5_6_s6.pdb
+  Saved: sample 7 (global RMSD=8.309 A) -> pdbs_CA2/mask_layer2_3_4_5_6_s7.pdb
+  Saved: sample 8 (global RMSD=4.203 A) -> pdbs_CA2/mask_layer2_3_4_5_6_s8.pdb
+  Saved: sample 9 (global RMSD=4.91 A) -> pdbs_CA2/mask_layer2_3_4_5_6_s9.pdb
+  Saved: sample 10 (global RMSD=3.863 A) -> pdbs_CA2/mask_layer2_3_4_5_6_s10.pdb
+  Saved: sample 11 (global RMSD=7.288 A) -> pdbs_CA2/mask_layer2_3_4_5_6_s11.pdb
+  Saved: sample 12 (global RMSD=7.507 A) -> pdbs_CA2/mask_layer2_3_4_5_6_s12.pdb
+  Saved: sample 13 (global RMSD=5.204 A) -> pdbs_CA2/mask_layer2_3_4_5_6_s13.pdb
+  Saved: sample 14 (global RMSD=6.979 A) -> pdbs_CA2/mask_layer2_3_4_5_6_s14.pdb
+  Saved: sample 15 (global RMSD=4.515 A) -> pdbs_CA2/mask_layer2_3_4_5_6_s15.pdb
+  Saved: sample 16 (global RMSD=7.674 A) -> pdbs_CA2/mask_layer2_3_4_5_6_s16.pdb
 
 ============================================================
   CA2 Final Summary

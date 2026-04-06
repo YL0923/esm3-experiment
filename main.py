@@ -186,15 +186,15 @@ def run_protein(protein_cfg: dict, model, conditions: list, n_samples: int):
                     std_si = math.sqrt(sum((x - avg_si)**2 for x in seq_ids) / len(seq_ids))
                     write(f"    Mean seq identity to WT:    {avg_si:.4f} +/- {std_si:.4f}")
 
-                # Save best PDB
-                best = min(valid, key=lambda r: r["rmsd_global"])
-                pdb_out = Path(struct_dir) / f"{cond_name}_best.pdb"
-                try:
-                    best["protein"].to_pdb(str(pdb_out))
-                    write(f"  Best: sample {best['sample_id']+1}"
-                          f" (global RMSD={best['rmsd_global']} A) -> {pdb_out}")
-                except Exception as e:
-                    write(f"  [Warning] Failed to save PDB: {e}")
+                # Save all valid PDBs
+                for r in valid:
+                    pdb_out = Path(struct_dir) / f"{cond_name}_s{r['sample_id'] + 1}.pdb"
+                    try:
+                        r["protein"].to_pdb(str(pdb_out))
+                        write(f"  Saved: sample {r['sample_id']+1}"
+                              f" (global RMSD={r['rmsd_global']} A) -> {pdb_out}")
+                    except Exception as e:
+                        write(f"  [Warning] Failed to save PDB sample {r['sample_id']+1}: {e}")
 
         # ---- Final summary ----
         write("")
@@ -327,10 +327,10 @@ def plot_results(all_results: list, protein_name: str):
                fmt='o-', capsize=4, label='Global RMSD',
                color='#2196F3', linewidth=2, markersize=7)
     _safe_plot(ax1, x, constrained_rmsd_local, constrained_rmsd_local_err,
-               fmt='s--', capsize=4, label='Constrained cRMSD',
+               fmt='s--', capsize=4, label='Catalytic site RMSD',
                color='#E53935', linewidth=2, markersize=7)
     _safe_plot(ax1, x, core_rmsd_local, core_rmsd_local_err,
-               fmt='^:', capsize=4, label='Core cRMSD',
+               fmt='^:', capsize=4, label='Core RMSD',
                color='#FF9800', linewidth=2, markersize=7)
     ax1.set_xticks(x)
     ax1.set_xticklabels(x_labels)
@@ -351,7 +351,7 @@ def plot_results(all_results: list, protein_name: str):
                fmt='o-', capsize=4, label='Global lDDT-CA',
                color='#2196F3', linewidth=2, markersize=7)
     _safe_plot(ax2, x, constrained_lddt, constrained_lddt_err,
-               fmt='s--', capsize=4, label='Constrained lDDT-CA',
+               fmt='s--', capsize=4, label='Catalytic site lDDT-CA',
                color='#E53935', linewidth=2, markersize=7)
     _safe_plot(ax2, x, core_lddt, core_lddt_err,
                fmt='^:', capsize=4, label='Core lDDT-CA',
@@ -438,7 +438,7 @@ def plot_cross_protein(all_protein_results: dict):
     ax1.set_xticks(x)
     ax1.set_xticklabels(short_labels)
     ax1.set_xlabel('Masking Condition')
-    ax1.set_ylabel('Constrained lDDT-CA')
+    ax1.set_ylabel('Catalytic site lDDT-CA')
     ax1.set_title('Active Site Preservation: Cross-Protein Comparison')
     ax1.set_ylim(0, 1.05)
     ax1.legend(fontsize=9)
@@ -462,7 +462,7 @@ def plot_cross_protein(all_protein_results: dict):
     ax2.set_xticks(x)
     ax2.set_xticklabels(short_labels)
     ax2.set_xlabel('Masking Condition')
-    ax2.set_ylabel('Constrained cRMSD (Å)')
+    ax2.set_ylabel('Catalytic site RMSD (Å)')
     ax2.set_title('Constraint Adherence: Cross-Protein Comparison')
     ax2.legend(fontsize=9)
     ax2.grid(True, alpha=0.3)

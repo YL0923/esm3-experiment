@@ -243,7 +243,7 @@ def run_protein(protein_cfg: dict, model, conditions: list, n_samples: int):
     with open(fasta_file, 'w', encoding='utf-8') as f:
         for r in all_results:
             if r["sequence"] is not None:
-                f.write(f">{pname}_{r['condition_name']}_s{r['sample_id']}\n")
+                f.write(f">{pname}_{r['condition_name']}_s{r['sample_id'] + 1}\n")
                 f.write(r["sequence"] + '\n')
                 n_seqs += 1
     print(f"[{pname}] Sequences saved: {fasta_file} ({n_seqs} sequences)")
@@ -270,11 +270,11 @@ def plot_results(all_results: list, protein_name: str):
             conditions.append((name, r["condition_label"]))
 
     short_labels = {
-        "mask_layer6":     "G1\n(L6)",
-        "mask_layer5_6":   "G2\n(L5-6)",
-        "mask_layer4_5_6": "G3\n(L4-6)",
-        "mask_layer3_6":   "G4\n(L3-6)",
-        "mask_layer2_6":   "G5\n(L2-6)",
+        "mask_layer6":       "G1\n(L6)",
+        "mask_layer5_6":     "G2\n(L5-6)",
+        "mask_layer4_5_6":   "G3\n(L4-6)",
+        "mask_layer3_4_5_6": "G4\n(L3-6)",
+        "mask_layer2_3_4_5_6": "G5\n(L2-6)",
     }
 
     def _gather(records, key):
@@ -402,7 +402,7 @@ def plot_cross_protein(all_protein_results: dict):
 
     cond_order = [
         "mask_layer6", "mask_layer5_6", "mask_layer4_5_6",
-        "mask_layer3_6", "mask_layer2_6",
+        "mask_layer3_4_5_6", "mask_layer2_3_4_5_6",
     ]
     short_labels = ["G1\n(L6)", "G2\n(L5-6)", "G3\n(L4-6)", "G4\n(L3-6)", "G5\n(L2-6)"]
 

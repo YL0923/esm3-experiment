@@ -9,7 +9,7 @@ DEVICE             = "cuda"
 N_SAMPLES          = 16
 STRUCT_NUM_STEPS   = 16
 STRUCT_TEMPERATURE = 0.7
-SEQ_NUM_STEPS      = 1
+SEQ_NUM_STEPS      = 16
 SEQ_TEMPERATURE    = 0.7
 BASE_SEED          = 42
 
@@ -36,13 +36,13 @@ CONDITIONS = [
         "fixed_mode":  "core_shell",
     },
     {
-        "name":        "mask_layer3_6",
+        "name":        "mask_layer3_4_5_6",
         "label":       "Group 4: mask layer 3+4+5+6 (shell fixed)",
         "mask_layers": [3, 4, 5, 6],
         "fixed_mode":  "core_shell",
     },
     {
-        "name":        "mask_layer2_6",
+        "name":        "mask_layer2_3_4_5_6",
         "label":       "Group 5: mask layer 2+3+4+5+6 (core only fixed)",
         "mask_layers": [2, 3, 4, 5, 6],
         "fixed_mode":  "core_only",
